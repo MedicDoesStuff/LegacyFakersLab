@@ -807,22 +807,22 @@ class AMPModel(ModelBase):
 
         S, D, SS, DD, DDM_000, _, _ = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in ([target_src,target_dst] + self.AE_view (target_src, target_dst, 0.0)  ) ]
 
-        _, _, DDM_025, SD_025, SDM_025 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.25) ]
-        _, _, DDM_050, SD_050, SDM_050 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.50) ]
-        _, _, DDM_065, SD_065, SDM_065 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.65) ]
-        _, _, DDM_075, SD_075, SDM_075 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.75) ]
+        _, _, DDM_020, SD_020, SDM_020 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.20) ]
+        _, _, DDM_040, SD_040, SDM_040 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.40) ]
+        _, _, DDM_060, SD_060, SDM_060 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.60) ]
+        _, _, DDM_080, SD_080, SDM_080 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.80) ]
         _, _, DDM_100, SD_100, SDM_100 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 1.00) ]
 
         (DDM_000,
-         DDM_025, SDM_025,
-         DDM_050, SDM_050,
-         DDM_065, SDM_065,
-         DDM_075, SDM_075,
+         DDM_020, SDM_020,
+         DDM_040, SDM_040,
+         DDM_060, SDM_060,
+         DDM_080, SDM_080,
          DDM_100, SDM_100) = [ np.repeat (x, (3,), -1) for x in (DDM_000,
-                                                                 DDM_025, SDM_025,
-                                                                 DDM_050, SDM_050,
-                                                                 DDM_065, SDM_065,
-                                                                 DDM_075, SDM_075,
+                                                                 DDM_020, SDM_020,
+                                                                 DDM_040, SDM_040,
+                                                                 DDM_060, SDM_060,
+                                                                 DDM_080, SDM_080,
                                                                  DDM_100, SDM_100) ]
 
         target_srcm, target_dstm = [ nn.to_data_format(x,"NHWC", self.model_data_format) for x in ([target_srcm, target_dstm] )]
@@ -834,17 +834,17 @@ class AMPModel(ModelBase):
         i = np.random.randint(n_samples)
 
         st =  [ np.concatenate ((S[i],  D[i],  DD[i]*DDM_000[i]), axis=1) ]
-        st += [ np.concatenate ((SS[i], DD[i], SD_075[i] ), axis=1) ]
+        st += [ np.concatenate ((SS[i], DD[i], SD_100[i] ), axis=1) ]
 
-        result += [ ('AMP morph 0.75', np.concatenate (st, axis=0 )), ]
+        result += [ ('AMP morph 1.00', np.concatenate (st, axis=0 )), ]
 
-        st =  [ np.concatenate ((DD[i], SD_025[i],  SD_050[i]), axis=1) ]
-        st += [ np.concatenate ((SD_065[i], SD_075[i], SD_100[i]), axis=1) ]
+        st =  [ np.concatenate ((DD[i], SD_020[i],  SD_040[i]), axis=1) ]
+        st += [ np.concatenate ((SD_060[i], SD_080[i], SD_100[i]), axis=1) ]
         result += [ ('AMP morph list', np.concatenate (st, axis=0 )), ]
 
 
-        st =  [ np.concatenate ((DD[i], SD_025[i]*DDM_025[i]*SDM_025[i],  SD_050[i]*DDM_050[i]*SDM_050[i]), axis=1) ]
-        st += [ np.concatenate ((SD_065[i]*DDM_065[i]*SDM_065[i], SD_075[i]*DDM_075[i]*SDM_075[i], SD_100[i]*DDM_100[i]*SDM_100[i]), axis=1) ]
+        st =  [ np.concatenate ((DD[i], SD_020[i]*DDM_020[i]*SDM_020[i],  SD_040[i]*DDM_040[i]*SDM_040[i]), axis=1) ]
+        st += [ np.concatenate ((SD_060[i]*DDM_060[i]*SDM_060[i], SD_080[i]*DDM_080[i]*SDM_080[i], SD_100[i]*DDM_100[i]*SDM_100[i]), axis=1) ]
         result += [ ('AMP morph list masked', np.concatenate (st, axis=0 )), ]
 
         return result
@@ -858,7 +858,7 @@ class AMPModel(ModelBase):
 
     #override
     def get_MergerConfig(self):
-        morph_factor = np.clip ( io.input_number ("Morph factor", 0.75, add_info="0.0 .. 1.0"), 0.0, 1.0 )
+        morph_factor = np.clip ( io.input_number ("Morph factor", 1.00, add_info="0.0 .. 1.0"), 0.0, 1.0 )
 
         def predictor_morph(face):
             return self.predictor_func(face, morph_factor)
