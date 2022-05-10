@@ -81,8 +81,7 @@ class AMPModel(ModelBase):
 
         default_d_dims             = self.options['d_dims']             = self.load_or_def_option('d_dims', 96)
 
-        default_d_mask_dims        = default_d_dims // 3
-        default_d_mask_dims        += default_d_mask_dims % 2
+        default_d_mask_dims        = 22
         default_d_mask_dims        = self.options['d_mask_dims']        = self.load_or_def_option('d_mask_dims', default_d_mask_dims)
 
         if self.is_first_run():
