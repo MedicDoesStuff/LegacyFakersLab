@@ -302,6 +302,8 @@ def get_transform_mat (image_landmarks, output_size, face_type, scale=1.0):
         g_c += vec*vec_len*0.07
 
     elif face_type == FaceType.HEAD:
+        mat = umeyama( np.concatenate ( [ image_landmarks[17:49] , image_landmarks[54:55] ] ) , landmarks_2D_new, True)[0:2]
+        
         # assuming image_landmarks are 3D_Landmarks extracted for HEAD,
         # adjust horizontal offset according to estimated yaw        
         yaw = estimate_averaged_yaw(transform_points (image_landmarks, mat, False))
@@ -441,7 +443,7 @@ def get_image_mouth_mask (image_shape, image_landmarks):
 
     image_landmarks = image_landmarks.astype(np.int)
 
-    cv2.fillConvexPoly( hull_mask, cv2.convexHull( image_landmarks[60:]), (1,) )
+    cv2.fillConvexPoly( hull_mask, cv2.convexHull( image_landmarks[48:60]), (1,) )
 
     dilate = h // 32
     hull_mask = cv2.dilate(hull_mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(dilate,dilate)), iterations = 1 )

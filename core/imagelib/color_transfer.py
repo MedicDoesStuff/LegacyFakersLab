@@ -1,9 +1,9 @@
 import cv2
-import numexpr as ne
 import numpy as np
-import scipy as sp
 from numpy import linalg as npla
-
+import random
+from scipy.stats import special_ortho_group
+import scipy as sp
 
 def color_transfer_sot(src,trg, steps=10, batch_size=5, reg_sigmaXY=16.0, reg_sigmaV=5.0):
     """
@@ -92,7 +92,7 @@ def color_transfer_mkl(x0, x1):
 
 def color_transfer_idt(i0, i1, bins=256, n_rot=20):
     import scipy.stats
-    
+
     relaxation = 1 / n_rot
     h,w,c = i0.shape
     h1,w1,c1 = i1.shape
@@ -135,57 +135,89 @@ def color_transfer_idt(i0, i1, bins=256, n_rot=20):
 
     return np.clip ( d0.T.reshape ( (h,w,c) ).astype(i0.dtype) , 0, 1)
 
-def reinhard_color_transfer(target : np.ndarray, source : np.ndarray, target_mask : np.ndarray = None, source_mask : np.ndarray = None, mask_cutoff=0.5) -> np.ndarray:
-    """
-    Transfer color using rct method.
+def reinhard_color_transfer(target, source, clip=False, preserve_paper=False, source_mask=None, target_mask=None):
+	"""
+	Transfers the color distribution from the source to the target
+	image using the mean and standard deviations of the L*a*b*
+	color space.
 
-        target      np.ndarray H W 3C   (BGR)   np.float32
-        source      np.ndarray H W 3C   (BGR)   np.float32
+	This implementation is (loosely) based on to the "Color Transfer
+	between Images" paper by Reinhard et al., 2001.
 
-        target_mask(None)   np.ndarray H W 1C  np.float32
-        source_mask(None)   np.ndarray H W 1C  np.float32
-        
-        mask_cutoff(0.5)    float
+	Parameters:
+	-------
+	source: NumPy array
+		OpenCV image in BGR color space (the source image)
+	target: NumPy array
+		OpenCV image in BGR color space (the target image)
+	clip: Should components of L*a*b* image be scaled by np.clip before
+		converting back to BGR color space?
+		If False then components will be min-max scaled appropriately.
+		Clipping will keep target image brightness truer to the input.
+		Scaling will adjust image brightness to avoid washed out portions
+		in the resulting color transfer that can be caused by clipping.
+	preserve_paper: Should color transfer strictly follow methodology
+		layed out in original paper? The method does not always produce
+		aesthetically pleasing results.
+		If False then L*a*b* components will scaled using the reciprocal of
+		the scaling factor proposed in the paper.  This method seems to produce
+		more consistently aesthetically pleasing results
 
-    masks are used to limit the space where color statistics will be computed to adjust the target
+	Returns:
+	-------
+	transfer: NumPy array
+		OpenCV image (w, h, 3) NumPy array (uint8)
+	"""
 
-    reference: Color Transfer between Images https://www.cs.tau.ac.il/~turkel/imagepapers/ColorTransfer.pdf
-    """
-    source = cv2.cvtColor(source, cv2.COLOR_BGR2LAB)
-    target = cv2.cvtColor(target, cv2.COLOR_BGR2LAB)
 
-    source_input = source
-    if source_mask is not None:
-        source_input = source_input.copy()
-        source_input[source_mask[...,0] < mask_cutoff] = [0,0,0]
-    
-    target_input = target
-    if target_mask is not None:
-        target_input = target_input.copy()
-        target_input[target_mask[...,0] < mask_cutoff] = [0,0,0]
+	# convert the images from the RGB to L*ab* color space, being
+	# sure to utilizing the floating point data type (note: OpenCV
+	# expects floats to be 32-bit, so use that instead of 64-bit)
+	source = cv2.cvtColor(source, cv2.COLOR_BGR2LAB).astype(np.float32)
+	target = cv2.cvtColor(target, cv2.COLOR_BGR2LAB).astype(np.float32)
 
-    target_l_mean, target_l_std, target_a_mean, target_a_std, target_b_mean, target_b_std, \
-        = target_input[...,0].mean(), target_input[...,0].std(), target_input[...,1].mean(), target_input[...,1].std(), target_input[...,2].mean(), target_input[...,2].std()
-    
-    source_l_mean, source_l_std, source_a_mean, source_a_std, source_b_mean, source_b_std, \
-        = source_input[...,0].mean(), source_input[...,0].std(), source_input[...,1].mean(), source_input[...,1].std(), source_input[...,2].mean(), source_input[...,2].std()
-    
-    # not as in the paper: scale by the standard deviations using reciprocal of paper proposed factor
-    target_l = target[...,0]
-    target_l = ne.evaluate('(target_l - target_l_mean) * source_l_std / target_l_std + source_l_mean')
+	# compute color statistics for the source and target images
+	src_input = source if source_mask is None else source*source_mask
+	tgt_input = target if target_mask is None else target*target_mask
+	(lMeanSrc, lStdSrc, aMeanSrc, aStdSrc, bMeanSrc, bStdSrc) = lab_image_stats(src_input)
+	(lMeanTar, lStdTar, aMeanTar, aStdTar, bMeanTar, bStdTar) = lab_image_stats(tgt_input)
 
-    target_a = target[...,1]
-    target_a = ne.evaluate('(target_a - target_a_mean) * source_a_std / target_a_std + source_a_mean')
-    
-    target_b = target[...,2]
-    target_b = ne.evaluate('(target_b - target_b_mean) * source_b_std / target_b_std + source_b_mean')
+	# subtract the means from the target image
+	(l, a, b) = cv2.split(target)
+	l -= lMeanTar
+	a -= aMeanTar
+	b -= bMeanTar
 
-    np.clip(target_l,    0, 100, out=target_l)
-    np.clip(target_a, -127, 127, out=target_a)
-    np.clip(target_b, -127, 127, out=target_b)
+	if preserve_paper:
+		# scale by the standard deviations using paper proposed factor
+		l = (lStdTar / lStdSrc) * l
+		a = (aStdTar / aStdSrc) * a
+		b = (bStdTar / bStdSrc) * b
+	else:
+		# scale by the standard deviations using reciprocal of paper proposed factor
+		l = (lStdSrc / lStdTar) * l
+		a = (aStdSrc / aStdTar) * a
+		b = (bStdSrc / bStdTar) * b
 
-    return cv2.cvtColor(np.stack([target_l,target_a,target_b], -1), cv2.COLOR_LAB2BGR)
+	# add in the source mean
+	l += lMeanSrc
+	a += aMeanSrc
+	b += bMeanSrc
 
+	# clip/scale the pixel intensities to [0, 255] if they fall
+	# outside this range
+	l = _scale_array(l, clip=clip)
+	a = _scale_array(a, clip=clip)
+	b = _scale_array(b, clip=clip)
+
+	# merge the channels together and convert back to the RGB color
+	# space, being sure to utilize the 8-bit unsigned integer data
+	# type
+	transfer = cv2.merge([l, a, b])
+	transfer = cv2.cvtColor(transfer.astype(np.uint8), cv2.COLOR_LAB2BGR)
+
+	# return the color transferred image
+	return transfer
 
 def linear_color_transfer(target_img, source_img, mode='pca', eps=1e-5):
     '''
@@ -323,7 +355,9 @@ def color_transfer(ct_mode, img_src, img_trg):
     if ct_mode == 'lct':
         out = linear_color_transfer (img_src, img_trg)
     elif ct_mode == 'rct':
-        out = reinhard_color_transfer(img_src, img_trg)
+        out = reinhard_color_transfer ( np.clip( img_src*255, 0, 255 ).astype(np.uint8),
+                                        np.clip( img_trg*255, 0, 255 ).astype(np.uint8) )
+        out = np.clip( out.astype(np.float32) / 255.0, 0.0, 1.0)
     elif ct_mode == 'mkl':
         out = color_transfer_mkl (img_src, img_trg)
     elif ct_mode == 'idt':
@@ -334,3 +368,74 @@ def color_transfer(ct_mode, img_src, img_trg):
     else:
         raise ValueError(f"unknown ct_mode {ct_mode}")
     return out
+
+
+# imported from faceswap
+def color_augmentation(img, seed=None):
+    """ Color adjust RGB image """
+    img = img.astype(np.float32)
+    face = img
+    face = np.clip(face*255.0, 0, 255).astype(np.uint8)
+    face = random_clahe(face, seed)
+    face = random_lab(face, seed)
+    img[:, :, :3] = face
+    return (face / 255.0).astype(np.float32)
+
+
+def random_lab_rotation(image, seed=None):
+    """
+    Randomly rotates image color around the L axis in LAB colorspace,
+    keeping perceptual lightness constant.
+    """
+    image = cv2.cvtColor(image.astype(np.float32), cv2.COLOR_BGR2LAB)
+    M = np.eye(3)
+    M[1:, 1:] = special_ortho_group.rvs(2, 1, seed)
+    image = image.dot(M)
+    l, a, b = cv2.split(image)
+    l = np.clip(l, 0, 100)
+    a = np.clip(a, -127, 127)
+    b = np.clip(b, -127, 127)
+    image = cv2.merge([l, a, b])
+    image = cv2.cvtColor(image.astype(np.float32), cv2.COLOR_LAB2BGR)
+    np.clip(image, 0, 1, out=image)
+    return image
+
+
+def random_lab(image, seed=None):
+    """ Perform random color/lightness adjustment in L*a*b* colorspace """
+    random.seed(seed)
+    amount_l = 30 / 100
+    amount_ab = 8 / 100
+    randoms = [(random.random() * amount_l * 2) - amount_l,  # L adjust
+                (random.random() * amount_ab * 2) - amount_ab,  # A adjust
+                (random.random() * amount_ab * 2) - amount_ab]  # B adjust
+    image = cv2.cvtColor(  # pylint:disable=no-member
+    image, cv2.COLOR_BGR2LAB).astype("float32") / 255.0  # pylint:disable=no-member
+
+    for idx, adjustment in enumerate(randoms):
+        if adjustment >= 0:
+            image[:, :, idx] = ((1 - image[:, :, idx]) * adjustment) + image[:, :, idx]
+        else:
+            image[:, :, idx] = image[:, :, idx] * (1 + adjustment)
+    image = cv2.cvtColor((image * 255.0).astype("uint8"),  # pylint:disable=no-member
+                        cv2.COLOR_LAB2BGR)  # pylint:disable=no-member
+    return image
+
+def random_clahe(image, seed=None):
+    """ Randomly perform Contrast Limited Adaptive Histogram Equalization """
+    random.seed(seed)
+    contrast_random = random.random()
+    if contrast_random > 50 / 100:
+        return image
+
+    # base_contrast = image.shape[0] // 128
+    base_contrast = 1 # testing because it breaks on small sizes
+    grid_base = random.random() * 4
+    contrast_adjustment = int(grid_base * (base_contrast / 2))
+    grid_size = base_contrast + contrast_adjustment
+
+    clahe = cv2.createCLAHE(clipLimit=2.0,  # pylint: disable=no-member
+                            tileGridSize=(grid_size, grid_size))
+    for chan in range(3):
+        image[:, :, chan] = clahe.apply(image[:, :, chan])
+    return image

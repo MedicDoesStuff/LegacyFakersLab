@@ -1,4 +1,11 @@
-﻿<table align="center" border="0">
+[![Patreon](https://c5.patreon.com/external/logo/become_a_patron_button@2x.png)](https://www.patreon.com/bePatron?u=22997465)
+
+# CHANGELOG 
+### [View most recent changes](CHANGELOG.md)
+
+![](doc/dfl_cover.png)
+
+<table align="center" border="0">
 
 <tr><td colspan=2 align="center">
 
@@ -32,11 +39,8 @@ DeepFaceLab is used by such popular youtube channels as
 |![](doc/tiktok_icon.png) [deeptomcruise](https://www.tiktok.com/@deeptomcruise)|![](doc/tiktok_icon.png) [1facerussia](https://www.tiktok.com/@1facerussia)|![](doc/tiktok_icon.png) [arnoldschwarzneggar](https://www.tiktok.com/@arnoldschwarzneggar)
 |---|---|---|
 
-|![](doc/tiktok_icon.png) [mariahcareyathome?](https://www.tiktok.com/@mariahcareyathome?)|![](doc/tiktok_icon.png) [diepnep](https://www.tiktok.com/@diepnep)|![](doc/tiktok_icon.png) [mr__heisenberg](https://www.tiktok.com/@mr__heisenberg)|![](doc/tiktok_icon.png) [deepcaprio](https://www.tiktok.com/@deepcaprio)
-|---|---|---|---|
-
-|![](doc/youtube_icon.png) [VFXChris Ume](https://www.youtube.com/channel/UCGf4OlX_aTt8DlrgiH3jN3g/videos)|![](doc/youtube_icon.png) [Sham00k](https://www.youtube.com/channel/UCZXbWcv7fSZFTAZV4beckyw/videos)|
-|---|---|
+|![](doc/youtube_icon.png) [Ctrl Shift Face](https://www.youtube.com/channel/UCKpH0CKltc73e4wh0_pgL3g)|![](doc/youtube_icon.png) [VFXChris Ume](https://www.youtube.com/channel/UCGf4OlX_aTt8DlrgiH3jN3g/videos)|![](doc/youtube_icon.png) [Sham00k](https://www.youtube.com/channel/UCZXbWcv7fSZFTAZV4beckyw/videos)|
+|---|---|---|
 
 |![](doc/youtube_icon.png) [Collider videos](https://www.youtube.com/watch?v=A91P2qtPT54&list=PLayt6616lBclvOprvrC8qKGCO-mAhPRux)|![](doc/youtube_icon.png) [iFake](https://www.youtube.com/channel/UCC0lK2Zo2BMXX-k1Ks0r7dg/videos)|![](doc/youtube_icon.png) [NextFace](https://www.youtube.com/channel/UCFh3gL0a8BS21g-DHvXZEeQ/videos)|
 |---|---|---|
@@ -183,7 +187,7 @@ Unfortunately, there is no "make everything ok" button in DeepFaceLab. You shoul
 
 ## Mini tutorial
 
-<a href="https://www.youtube.com/watch?v=kOIMXt8KK8M">
+<a href="https://www.youtube.com/watch?v=1smpMsfC3ls">
 
 <img src="doc/mini_tutorial.jpg" align="center">
 
@@ -197,15 +201,11 @@ Unfortunately, there is no "make everything ok" button in DeepFaceLab. You shoul
 </td></tr>
 
 <tr><td align="right">
-<a href="https://tinyurl.com/2p9cvt25">Windows (magnet link)</a>
+<a href="https://tinyurl.com/4tb2tn4w">Windows (magnet link)</a>
 </td><td align="center">Last release. Use torrent client to download.</td></tr>
 
 <tr><td align="right">
 <a href="https://mega.nz/folder/Po0nGQrA#dbbttiNWojCt8jzD4xYaPw">Windows (Mega.nz)</a>
-</td><td align="center">Contains new and prev releases.</td></tr>
-
-<tr><td align="right">
-<a href="https://disk.yandex.ru/d/7i5XTKIKVg5UUg">Windows (yandex.ru)</a>
 </td><td align="center">Contains new and prev releases.</td></tr>
 
 <tr><td align="right">
@@ -301,8 +301,8 @@ Unfortunately, there is no "make everything ok" button in DeepFaceLab. You shoul
 </td><td align="center">Постим русские дипфейки сюда !</td></tr>
 
 <tr><td align="right">
-QQ群1095077489
-</td><td align="center">中文交流QQ群，商务合作找群主</td></tr>
+QQ 951138799
+</td><td align="center">中文 Chinese QQ group for ML/AI experts</td></tr>
 
 <tr><td align="right">
 <a href="https://www.dfldata.xyz">dfldata.xyz</a>
@@ -312,25 +312,6 @@ QQ群1095077489
 <a href="https://www.deepfaker.xyz/">deepfaker.xyz</a>
 </td><td align="center">中文学习站（非官方)</td></tr>
 
-<tr><td colspan=2 align="center">
-
-## Related works
-
-</td></tr>
-
-<tr><td align="right">
-<a href="https://github.com/iperov/DeepFaceLive">DeepFaceLive</a>
-</td><td align="center">Real-time face swap for PC streaming or video calls</td></tr>
-
-<tr><td align="right">
-<a href="https://github.com/neuralchen/SimSwap">neuralchen/SimSwap</a>
-</td><td align="center">Swapping face using ONE single photo 一张图免训练换脸</td></tr>
-
-<tr><td align="right">
-<a href="https://github.com/deepfakes/faceswap">deepfakes/faceswap</a>
-</td><td align="center">Something that was before DeepFaceLab and still remains in the past</td></tr>
-
-</td></tr>
 </table>
 
 <table align="center" border="0">
@@ -346,11 +327,11 @@ QQ群1095077489
 ### Sponsor deepfake research and DeepFaceLab development.
 
 </td></tr>
-<!--
+
 <tr><td colspan=2 align="center">
 <a href="https://www.paypal.com/paypalme/DeepFaceLab">Donate via Paypal</a>
 </td></tr>
--->
+
 <tr><td colspan=2 align="center">
 <a href="https://money.yandex.ru/to/41001142318065">Donate via Yandex.Money</a>
 </td></tr>
