@@ -58,7 +58,7 @@ class AMPModel(ModelBase):
 
         default_background_power   = self.options['background_power']   = self.load_or_def_option('background_power', 0.0)
         default_ct_mode            = self.options['ct_mode']            = self.load_or_def_option('ct_mode', 'none')
-        default_random_color       = self.options['random_color']       = self.load_or_def_option('random_color', False)
+        default_random_color       = self.options['random_color']       = self.load_or_def_option('random_color', True)
         default_clipgrad           = self.options['clipgrad']           = self.load_or_def_option('clipgrad', True)
         default_pretrain           = self.options['pretrain']      = self.load_or_def_option('pretrain', False)
 
