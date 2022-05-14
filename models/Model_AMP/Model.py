@@ -44,7 +44,7 @@ class AMPModel(ModelBase):
         default_eyes_mouth_prio    = self.options['eyes_mouth_prio']    = self.load_or_def_option('eyes_mouth_prio', True)
         default_uniform_yaw        = self.options['uniform_yaw']        = self.load_or_def_option('uniform_yaw', False)
 
-        lr_dropout = self.load_or_def_option('lr_dropout', 'n')
+        lr_dropout = self.load_or_def_option('lr_dropout', 'y')
         lr_dropout = {True:'y', False:'n'}.get(lr_dropout, lr_dropout) #backward comp
         default_lr_dropout         = self.options['lr_dropout'] = lr_dropout
 
