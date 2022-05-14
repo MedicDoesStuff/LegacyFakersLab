@@ -44,7 +44,7 @@ class AMPModel(ModelBase):
         default_eyes_mouth_prio    = self.options['eyes_mouth_prio']    = self.load_or_def_option('eyes_mouth_prio', True)
         default_uniform_yaw        = self.options['uniform_yaw']        = self.load_or_def_option('uniform_yaw', False)
 
-        lr_dropout = self.load_or_def_option('lr_dropout', 'y')
+        lr_dropout = self.load_or_def_option('lr_dropout', 'n')
         lr_dropout = {True:'y', False:'n'}.get(lr_dropout, lr_dropout) #backward comp
         default_lr_dropout         = self.options['lr_dropout'] = lr_dropout
 
@@ -111,6 +111,9 @@ class AMPModel(ModelBase):
         default_gan_dims           = self.options['gan_dims']           = self.load_or_def_option('gan_dims', 16)
 
         if self.is_first_run() or ask_override:
+
+            self.options['lr_dropout']  = io.input_str (f"Use LRD", default_lr_dropout, ['n','y','cpu'], help_message="When the face is trained enough, you can enable this option to get extra sharpness and reduce subpixel shake for less amount of iterations. Enabled it before `disable random warp` and before GAN. \nn - disabled.\ny - enabled\ncpu - enabled on CPU. This allows not to use extra VRAM, sacrificing 20% time of iteration.")
+
             self.options['random_warp'] = io.input_bool ("Enable Random Warp of Samples", default_random_warp, help_message="Random warp is required to generalize facial expressions of both faces. When the face is trained enough, you can disable it to get extra sharpness and reduce subpixel shake for less amount of iterations.")
 
             self.options['gan_power'] = np.clip ( io.input_number ("GAN Power", default_gan_power, add_info="0.0 .. 1.0", help_message="Forces the neural network to learn small details of the face. Enable it only when the face is trained enough with lr_dropout(on) and random_warp(off), and don't disable. The higher the value, the higher the chances of artifacts. Typical fine value is 0.1"), 0.0, 1.0 )
