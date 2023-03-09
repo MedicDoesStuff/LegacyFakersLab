@@ -31,24 +31,24 @@ class AMPModel(ModelBase):
         min_res = 64
         max_res = 640
 
-        default_resolution         = self.options['resolution']         = self.load_or_def_option('resolution', 320)
+        default_resolution         = self.options['resolution']         = self.load_or_def_option('resolution', 224)
         default_face_type          = self.options['face_type']          = self.load_or_def_option('face_type', 'wf')
         default_models_opt_on_gpu  = self.options['models_opt_on_gpu']  = self.load_or_def_option('models_opt_on_gpu', True)
 
-        default_ae_dims            = self.options['ae_dims']            = self.load_or_def_option('ae_dims', 512)
-        default_e_dims             = self.options['e_dims']             = self.load_or_def_option('e_dims', 96)
+        default_ae_dims            = self.options['ae_dims']            = self.load_or_def_option('ae_dims', 256)
+        default_e_dims             = self.options['e_dims']             = self.load_or_def_option('e_dims', 64)
         default_d_dims             = self.options['d_dims']             = self.options.get('d_dims', None)
         default_d_mask_dims        = self.options['d_mask_dims']        = self.options.get('d_mask_dims', None)
-        default_morph_factor       = self.options['morph_factor']       = self.options.get('morph_factor', 0.1)
+        default_morph_factor       = self.options['morph_factor']       = self.options.get('morph_factor', 0.33)
         default_masked_training    = self.options['masked_training']    = self.load_or_def_option('masked_training', True)
         default_eyes_mouth_prio    = self.options['eyes_mouth_prio']    = self.load_or_def_option('eyes_mouth_prio', True)
         default_uniform_yaw        = self.options['uniform_yaw']        = self.load_or_def_option('uniform_yaw', False)
 
-        lr_dropout = self.load_or_def_option('lr_dropout', 'y')
+        lr_dropout = self.load_or_def_option('lr_dropout', 'n')
         lr_dropout = {True:'y', False:'n'}.get(lr_dropout, lr_dropout) #backward comp
         default_lr_dropout         = self.options['lr_dropout'] = lr_dropout
 
-        default_loss_function      = self.options['loss_function']      = self.load_or_def_option('loss_function', 'MS-SSIM')
+        default_loss_function      = self.options['loss_function']      = self.load_or_def_option('loss_function', 'SSIM')
 
         default_random_warp        = self.options['random_warp']        = self.load_or_def_option('random_warp', True)
         default_random_downsample  = self.options['random_downsample']  = self.load_or_def_option('random_downsample', False)
@@ -57,9 +57,9 @@ class AMPModel(ModelBase):
         default_random_jpeg        = self.options['random_jpeg']        = self.load_or_def_option('random_jpeg', False)
 
         default_background_power   = self.options['background_power']   = self.load_or_def_option('background_power', 0.0)
-        default_ct_mode            = self.options['ct_mode']            = self.load_or_def_option('ct_mode', 'fs-aug')
-        default_random_color       = self.options['random_color']       = self.load_or_def_option('random_color', True)
-        default_clipgrad           = self.options['clipgrad']           = self.load_or_def_option('clipgrad', True)
+        default_ct_mode            = self.options['ct_mode']            = self.load_or_def_option('ct_mode', 'none')
+        default_random_color       = self.options['random_color']       = self.load_or_def_option('random_color', False)
+        default_clipgrad           = self.options['clipgrad']           = self.load_or_def_option('clipgrad', False)
         default_pretrain           = self.options['pretrain']      = self.load_or_def_option('pretrain', False)
 
 
@@ -79,58 +79,70 @@ class AMPModel(ModelBase):
             self.options['face_type'] = io.input_str ("Face type", default_face_type, ['wf','head'], help_message="whole face / head").lower()
 
 
-        default_d_dims             = self.options['d_dims']             = self.load_or_def_option('d_dims', 96)
+        default_d_dims             = self.options['d_dims']             = self.load_or_def_option('d_dims', 64)
 
-        default_d_mask_dims        = 22
+        default_d_mask_dims        = default_d_dims // 3
+        default_d_mask_dims        += default_d_mask_dims % 2
         default_d_mask_dims        = self.options['d_mask_dims']        = self.load_or_def_option('d_mask_dims', default_d_mask_dims)
 
         if self.is_first_run():
-            self.options['ae_dims'] = np.clip ( io.input_int("Autoencoder Dimensions", default_ae_dims, add_info="32-1024", help_message="All face information will packed to AE dims. If amount of AE dims are not enough, then for example closed eyes will not be recognized. More dims are better, but require more VRAM. You can fine-tune model size to fit your GPU." ), 32, 1024 )
+            self.options['ae_dims'] = np.clip ( io.input_int("AutoEncoder dimensions", default_ae_dims, add_info="32-1024", help_message="All face information will packed to AE dims. If amount of AE dims are not enough, then for example closed eyes will not be recognized. More dims are better, but require more VRAM. You can fine-tune model size to fit your GPU." ), 32, 1024 )
 
-            e_dims = np.clip ( io.input_int("Encoder Dimensions", default_e_dims, add_info="16-256", help_message="More dims help to recognize more facial features and achieve sharper result, but require more VRAM. You can fine-tune model size to fit your GPU." ), 16, 256 )
+            e_dims = np.clip ( io.input_int("Encoder dimensions", default_e_dims, add_info="16-256", help_message="More dims help to recognize more facial features and achieve sharper result, but require more VRAM. You can fine-tune model size to fit your GPU." ), 16, 256 )
             self.options['e_dims'] = e_dims + e_dims % 2
 
-            d_dims = np.clip ( io.input_int("Decoder Dimensions", default_d_dims, add_info="16-256", help_message="More dims help to recognize more facial features and achieve sharper result, but require more VRAM. You can fine-tune model size to fit your GPU." ), 16, 256 )
+            d_dims = np.clip ( io.input_int("Decoder dimensions", default_d_dims, add_info="16-256", help_message="More dims help to recognize more facial features and achieve sharper result, but require more VRAM. You can fine-tune model size to fit your GPU." ), 16, 256 )
             self.options['d_dims'] = d_dims + d_dims % 2
 
-            d_mask_dims = np.clip ( io.input_int("Decoder Mask Dimensions", default_d_mask_dims, add_info="16-256", help_message="Typical mask dimensions = decoder dimensions / 3. If you manually cut out obstacles from the dst mask, you can increase this parameter to achieve better quality." ), 16, 256 )
+            d_mask_dims = np.clip ( io.input_int("Decoder mask dimensions", default_d_mask_dims, add_info="16-256", help_message="Typical mask dimensions = decoder dimensions / 3. If you manually cut out obstacles from the dst mask, you can increase this parameter to achieve better quality." ), 16, 256 )
             self.options['d_mask_dims'] = d_mask_dims + d_mask_dims % 2
 
         if self.is_first_run() or ask_override:
-            morph_factor = np.clip ( io.input_number ("Morph Factor.", default_morph_factor, add_info="0.1 .. 0.5", help_message="The smaller the value, the more src-like facial expressions will appear. The larger the value, the less space there is to train a large dst faceset in the neural network. Typical fine value is 0.33"), 0.1, 0.5 )
+            morph_factor = np.clip ( io.input_number ("Morph factor.", default_morph_factor, add_info="0.1 .. 0.5", help_message="The smaller the value, the more src-like facial expressions will appear. The larger the value, the less space there is to train a large dst faceset in the neural network. Typical fine value is 0.33"), 0.1, 0.5 )
             self.options['morph_factor'] = morph_factor
 
             if self.options['face_type'] == 'wf' or self.options['face_type'] == 'head':
-                self.options['masked_training']  = io.input_bool ("Masked Training", default_masked_training, help_message="This option is available only for 'whole_face' or 'head' type. Masked training clips training area to full_face mask or XSeg mask, thus network will train the faces properly.")
+                self.options['masked_training']  = io.input_bool ("Masked training", default_masked_training, help_message="This option is available only for 'whole_face' or 'head' type. Masked training clips training area to full_face mask or XSeg mask, thus network will train the faces properly.")
 
-
-            self.options['uniform_yaw'] = io.input_bool ("Uniform Yaw Distribution of Samples", default_uniform_yaw, help_message='Helps to fix blurry side faces due to small amount of them in the faceset.')
+            self.options['eyes_mouth_prio'] = io.input_bool ("Eyes and mouth priority", default_eyes_mouth_prio, help_message='Helps to fix eye problems during training like "alien eyes" and wrong eyes direction. Also makes the detail of the teeth higher.')
+            self.options['uniform_yaw'] = io.input_bool ("Uniform yaw distribution of samples", default_uniform_yaw, help_message='Helps to fix blurry side faces due to small amount of them in the faceset.')
 
         default_gan_power          = self.options['gan_power']          = self.load_or_def_option('gan_power', 0.0)
         default_gan_patch_size     = self.options['gan_patch_size']     = self.load_or_def_option('gan_patch_size', self.options['resolution'] // 8)
         default_gan_dims           = self.options['gan_dims']           = self.load_or_def_option('gan_dims', 16)
 
         if self.is_first_run() or ask_override:
+            self.options['models_opt_on_gpu'] = io.input_bool ("Place models and optimizer on GPU", default_models_opt_on_gpu, help_message="When you train on one GPU, by default model and optimizer weights are placed on GPU to accelerate the process. You can place they on CPU to free up extra VRAM, thus set bigger dimensions.")
 
-            self.options['lr_dropout']  = io.input_str (f"Use LRD", default_lr_dropout, ['n','y','cpu'], help_message="When the face is trained enough, you can enable this option to get extra sharpness and reduce subpixel shake for less amount of iterations. Enabled it before `disable random warp` and before GAN. \nn - disabled.\ny - enabled\ncpu - enabled on CPU. This allows not to use extra VRAM, sacrificing 20% time of iteration.")
+            self.options['lr_dropout']  = io.input_str (f"Use learning rate dropout", default_lr_dropout, ['n','y','cpu'], help_message="When the face is trained enough, you can enable this option to get extra sharpness and reduce subpixel shake for less amount of iterations. Enabled it before `disable random warp` and before GAN. \nn - disabled.\ny - enabled\ncpu - enabled on CPU. This allows not to use extra VRAM, sacrificing 20% time of iteration.")
 
-            self.options['loss_function'] = io.input_str(f"Loss function", default_loss_function, ['SSIM', 'MS-SSIM'],
+            self.options['loss_function'] = io.input_str(f"Loss function", default_loss_function, ['SSIM', 'MS-SSIM', 'MS-SSIM+L1'],
                                                          help_message="Change loss function used for image quality assessment.")
 
-            self.options['random_warp'] = io.input_bool ("Enable Random Warp of Samples", default_random_warp, help_message="Random warp is required to generalize facial expressions of both faces. When the face is trained enough, you can disable it to get extra sharpness and reduce subpixel shake for less amount of iterations.")
+            self.options['random_warp'] = io.input_bool ("Enable random warp of samples", default_random_warp, help_message="Random warp is required to generalize facial expressions of both faces. When the face is trained enough, you can disable it to get extra sharpness and reduce subpixel shake for less amount of iterations.")
 
-            self.options['gan_power'] = np.clip ( io.input_number ("GAN Power", default_gan_power, add_info="0.0 .. 1.0", help_message="Forces the neural network to learn small details of the face. Enable it only when the face is trained enough with lr_dropout(on) and random_warp(off), and don't disable. The higher the value, the higher the chances of artifacts. Typical fine value is 0.1"), 0.0, 1.0 )
+            self.options['random_downsample'] = io.input_bool("Enable random downsample of samples", default_random_downsample, help_message="")
+            self.options['random_noise'] = io.input_bool("Enable random noise added to samples", default_random_noise, help_message="")
+            self.options['random_blur'] = io.input_bool("Enable random blur of samples", default_random_blur, help_message="")
+            self.options['random_jpeg'] = io.input_bool("Enable random jpeg compression of samples", default_random_jpeg, help_message="")
+
+            self.options['gan_power'] = np.clip ( io.input_number ("GAN power", default_gan_power, add_info="0.0 .. 1.0", help_message="Forces the neural network to learn small details of the face. Enable it only when the face is trained enough with lr_dropout(on) and random_warp(off), and don't disable. The higher the value, the higher the chances of artifacts. Typical fine value is 0.1"), 0.0, 1.0 )
 
             if self.options['gan_power'] != 0.0:
-                gan_patch_size = np.clip ( io.input_int("GAN Patch Size", default_gan_patch_size, add_info="3-640", help_message="The higher patch size, the higher the quality, the more VRAM is required. You can get sharper edges even at the lowest setting. Typical fine value is resolution / 8." ), 3, 640 )
+                gan_patch_size = np.clip ( io.input_int("GAN patch size", default_gan_patch_size, add_info="3-640", help_message="The higher patch size, the higher the quality, the more VRAM is required. You can get sharper edges even at the lowest setting. Typical fine value is resolution / 8." ), 3, 640 )
                 self.options['gan_patch_size'] = gan_patch_size
 
-                gan_dims = np.clip ( io.input_int("GAN Dimensions", default_gan_dims, add_info="4-64", help_message="The dimensions of the GAN network. The higher dimensions, the more VRAM is required. You can get sharper edges even at the lowest setting. Typical fine value is 16." ), 4, 64 )
+                gan_dims = np.clip ( io.input_int("GAN dimensions", default_gan_dims, add_info="4-64", help_message="The dimensions of the GAN network. The higher dimensions, the more VRAM is required. You can get sharper edges even at the lowest setting. Typical fine value is 16." ), 4, 64 )
                 self.options['gan_dims'] = gan_dims
 
-            self.options['ct_mode'] = io.input_str (f"Color Transfer Mode", default_ct_mode, ['none','fs-aug'], help_message="Change color distribution of src samples close to dst samples. Try all modes to find the best.")
-            self.options['random_color'] = io.input_bool ("Random Color", default_random_color, help_message="Samples are randomly rotated around the L axis in LAB colorspace, helps generalize training")            
+            self.options['background_power'] = np.clip ( io.input_number("Background power", default_background_power, add_info="0.0..1.0", help_message="Learn the area outside of the mask. Helps smooth out area near the mask boundaries. Can be used at any time"), 0.0, 1.0 )
 
+            self.options['ct_mode'] = io.input_str (f"Color transfer for src faceset", default_ct_mode, ['none','rct','lct','mkl','idt','sot', 'fs-aug'], help_message="Change color distribution of src samples close to dst samples. Try all modes to find the best.")
+            self.options['random_color'] = io.input_bool ("Random color", default_random_color, help_message="Samples are randomly rotated around the L axis in LAB colorspace, helps generalize training")
+            self.options['clipgrad'] = io.input_bool ("Enable gradient clipping", default_clipgrad, help_message="Gradient clipping reduces chance of model collapse, sacrificing speed of training.")
+            
+            self.options['pretrain'] = io.input_bool ("Enable pretraining mode", default_pretrain, help_message="Pretrain the model with large amount of various faces. After that, model can be used to train the fakes more quickly. Forces random_warp=N, random_flips=Y, gan_power=0.0, lr_dropout=N, uniform_yaw=Y")
+        
         self.gan_model_changed = (default_gan_patch_size != self.options['gan_patch_size']) or (default_gan_dims != self.options['gan_dims'])
         self.pretrain_just_disabled = (default_pretrain == True and self.options['pretrain'] == False)
 
@@ -817,22 +829,22 @@ class AMPModel(ModelBase):
 
         S, D, SS, DD, DDM_000, _, _ = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in ([target_src,target_dst] + self.AE_view (target_src, target_dst, 0.0)  ) ]
 
-        _, _, DDM_050, SD_050, SDM_050 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.20) ]
-        _, _, DDM_075, SD_075, SDM_075 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.40) ]
-        _, _, DDM_090, SD_090, SDM_090 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.60) ]
-        _, _, DDM_095, SD_095, SDM_095 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.80) ]
+        _, _, DDM_025, SD_025, SDM_025 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.25) ]
+        _, _, DDM_050, SD_050, SDM_050 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.50) ]
+        _, _, DDM_065, SD_065, SDM_065 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.65) ]
+        _, _, DDM_075, SD_075, SDM_075 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 0.75) ]
         _, _, DDM_100, SD_100, SDM_100 = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in self.AE_view (target_src, target_dst, 1.00) ]
 
         (DDM_000,
+         DDM_025, SDM_025,
          DDM_050, SDM_050,
+         DDM_065, SDM_065,
          DDM_075, SDM_075,
-         DDM_090, SDM_090,
-         DDM_095, SDM_095,
          DDM_100, SDM_100) = [ np.repeat (x, (3,), -1) for x in (DDM_000,
+                                                                 DDM_025, SDM_025,
                                                                  DDM_050, SDM_050,
+                                                                 DDM_065, SDM_065,
                                                                  DDM_075, SDM_075,
-                                                                 DDM_090, SDM_090,
-                                                                 DDM_095, SDM_095,
                                                                  DDM_100, SDM_100) ]
 
         target_srcm, target_dstm = [ nn.to_data_format(x,"NHWC", self.model_data_format) for x in ([target_srcm, target_dstm] )]
@@ -844,17 +856,17 @@ class AMPModel(ModelBase):
         i = np.random.randint(n_samples)
 
         st =  [ np.concatenate ((S[i],  D[i],  DD[i]*DDM_000[i]), axis=1) ]
-        st += [ np.concatenate ((SS[i], DD[i], SD_100[i] ), axis=1) ]
+        st += [ np.concatenate ((SS[i], DD[i], SD_075[i] ), axis=1) ]
 
-        result += [ ('AMP morph 1.00', np.concatenate (st, axis=0 )), ]
+        result += [ ('AMP morph 0.75', np.concatenate (st, axis=0 )), ]
 
-        st =  [ np.concatenate ((DD[i], SD_050[i],  SD_075[i]), axis=1) ]
-        st += [ np.concatenate ((SD_090[i], SD_095[i], SD_100[i]), axis=1) ]
+        st =  [ np.concatenate ((DD[i], SD_025[i],  SD_050[i]), axis=1) ]
+        st += [ np.concatenate ((SD_065[i], SD_075[i], SD_100[i]), axis=1) ]
         result += [ ('AMP morph list', np.concatenate (st, axis=0 )), ]
 
 
-        st =  [ np.concatenate ((DD[i], SD_050[i]*DDM_050[i]*SDM_050[i],  SD_075[i]*DDM_075[i]*SDM_075[i]), axis=1) ]
-        st += [ np.concatenate ((SD_090[i]*DDM_090[i]*SDM_090[i], SD_095[i]*DDM_095[i]*SDM_095[i], SD_100[i]*DDM_100[i]*SDM_100[i]), axis=1) ]
+        st =  [ np.concatenate ((DD[i], SD_025[i]*DDM_025[i]*SDM_025[i],  SD_050[i]*DDM_050[i]*SDM_050[i]), axis=1) ]
+        st += [ np.concatenate ((SD_065[i]*DDM_065[i]*SDM_065[i], SD_075[i]*DDM_075[i]*SDM_075[i], SD_100[i]*DDM_100[i]*SDM_100[i]), axis=1) ]
         result += [ ('AMP morph list masked', np.concatenate (st, axis=0 )), ]
 
         return result
@@ -868,7 +880,7 @@ class AMPModel(ModelBase):
 
     #override
     def get_MergerConfig(self):
-        morph_factor = np.clip ( io.input_number ("Morph factor", 1.00, add_info="0.0 .. 1.0"), 0.0, 1.0 )
+        morph_factor = np.clip ( io.input_number ("Morph factor", 0.75, add_info="0.0 .. 1.0"), 0.0, 1.0 )
 
         def predictor_morph(face):
             return self.predictor_func(face, morph_factor)
